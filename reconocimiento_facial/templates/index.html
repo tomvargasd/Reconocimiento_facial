@@ -1,16 +1,39 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Reconocimiento Facial</title>
-  </head>
-  <body>
-    <h1>Proyecto Reconocimiento Facial</h1>
-    <nav>
-      <ul>
-        <li><a href="/profiles">Gestión de Perfiles</a></li>
-        <li><a href="/upload">Subir Video / Cámara</a></li>
-      </ul>
-    </nav>
-  </body>
-</html>
+{% extends "base.html" %}
+{% block title %}FaceID System — Inicio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Panel de Control</h1>
+    <p>Sistema de reconocimiento facial impulsado por inteligencia artificial. Gestiona perfiles, analiza videos y monitorea detecciones en tiempo real.</p>
+</div>
+
+<div class="dashboard-grid">
+    <a href="/profiles" class="card" id="card-profiles" style="animation: fadeInUp 0.5s ease-out backwards; animation-delay: 0.05s;">
+        <span class="card-icon">👤</span>
+        <h3>Gestión de Perfiles</h3>
+        <p>Registra personas y sube imágenes de referencia para su identificación facial.</p>
+        <span class="card-stat">{{ num_personas }} persona{{ 's' if num_personas != 1 else '' }} registrada{{ 's' if num_personas != 1 else '' }}</span>
+    </a>
+
+    <a href="/upload" class="card" id="card-video" style="animation: fadeInUp 0.5s ease-out backwards; animation-delay: 0.1s;">
+        <span class="card-icon">🎬</span>
+        <h3>Análisis de Video</h3>
+        <p>Sube un archivo de video y el sistema detectará e identificará cada rostro automáticamente.</p>
+        <span class="card-stat">Subir video</span>
+    </a>
+
+    <a href="/upload#webcam" class="card" id="card-webcam" style="animation: fadeInUp 0.5s ease-out backwards; animation-delay: 0.15s;">
+        <span class="card-icon">📷</span>
+        <h3>Cámara en Tiempo Real</h3>
+        <p>Usa tu webcam para detectar e identificar rostros en vivo con resultados instantáneos.</p>
+        <span class="card-stat">En vivo</span>
+    </a>
+
+    <a href="/detections" class="card" id="card-detections" style="animation: fadeInUp 0.5s ease-out backwards; animation-delay: 0.2s;">
+        <span class="card-icon">📊</span>
+        <h3>Historial de Detecciones</h3>
+        <p>Explora todas las detecciones faciales registradas, filtrando por persona o fecha.</p>
+        <span class="card-stat">{{ num_detecciones }} detección{{ 'es' if num_detecciones != 1 else '' }}</span>
+    </a>
+</div>
+{% endblock %}

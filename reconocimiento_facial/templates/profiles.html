@@ -1,11 +1,57 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Perfiles</title>
-  </head>
-  <body>
+{% extends "base.html" %}
+{% block title %}FaceID — Perfiles{% endblock %}
+
+{% block content %}
+<div class="page-header">
     <h1>Gestión de Perfiles</h1>
-    <p>Próximamente: formulario para añadir personas y subir imágenes de perfil.</p>
-  </body>
-</html>
+    <p>Registra personas y sube imágenes de referencia para que el sistema pueda identificarlas.</p>
+</div>
+
+<!-- Add Person Form -->
+<div class="card mb-xl" style="animation: fadeInUp 0.5s ease-out;">
+    <h3 class="section-title">➕ Registrar Nueva Persona</h3>
+    <form action="/profiles" method="POST" class="form-inline">
+        <div class="form-group">
+            <label class="form-label" for="nombre">Nombre completo</label>
+            <input type="text" class="form-control" id="nombre" name="nombre" placeholder="Ej: Juan Pérez" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">Registrar</button>
+    </form>
+</div>
+
+<!-- Profiles List -->
+<h2 class="section-title">👥 Personas Registradas</h2>
+
+{% if personas|length > 0 %}
+<div class="profiles-grid">
+    {% for persona in personas %}
+    <div class="profile-card" style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+        <div class="profile-info">
+            <div class="profile-avatar">{{ persona['nombre'][0]|upper }}</div>
+            <div class="profile-details">
+                <h3>{{ persona['nombre'] }}</h3>
+                <span class="profile-meta">{{ persona['num_imagenes'] }} imagen{{ 'es' if persona['num_imagenes'] != 1 else '' }} de perfil</span>
+            </div>
+        </div>
+
+        <div class="profile-card-actions">
+            <form action="/upload_profile_image/{{ persona['id'] }}" method="POST" enctype="multipart/form-data">
+                <label class="btn btn-outline btn-sm" style="cursor: pointer;">
+                    📸 Subir Imagen
+                    <input type="file" name="image" accept="image/*" required onchange="this.form.submit();" style="display:none;">
+                </label>
+            </form>
+            <form action="/delete_persona/{{ persona['id'] }}" method="POST" onsubmit="return confirm('¿Eliminar a {{ persona['nombre'] }} y todas sus imágenes?');">
+                <button type="submit" class="btn btn-danger btn-sm">🗑️ Eliminar</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">👤</div>
+    <p>No hay personas registradas aún. ¡Añade la primera!</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistema de Reconocimiento Facial - Detección e identificación de rostros con IA">
+    <title>{% block title %}Reconocimiento Facial{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <a href="/" class="navbar-brand">
+            <span class="brand-icon">🔬</span>
+            <span>FaceID System</span>
+        </a>
+        <button class="navbar-toggle" id="navbarToggle" aria-label="Abrir menú">☰</button>
+        <ul class="navbar-nav" id="navbarNav">
+            <li><a href="/" class="{% if request.endpoint == 'index' %}active{% endif %}">🏠 Inicio</a></li>
+            <li><a href="/profiles" class="{% if request.endpoint == 'profiles' %}active{% endif %}">👤 Perfiles</a></li>
+            <li><a href="/upload" class="{% if request.endpoint == 'upload' %}active{% endif %}">🎬 Análisis</a></li>
+            <li><a href="/detections" class="{% if request.endpoint == 'detections' %}active{% endif %}">📊 Detecciones</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {% if category == 'success' %}✅{% elif category == 'error' %}❌{% else %}ℹ️{% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+
+        <footer class="footer">
+            <p>FaceID System — Reconocimiento Facial con IA &copy; 2026</p>
+        </footer>
+    </main>
+
+    <script>
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 10) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Mobile menu toggle
+        document.getElementById('navbarToggle').addEventListener('click', function() {
+            document.getElementById('navbarNav').classList.toggle('active');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}FaceID — Resultados del Análisis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Resultados del Análisis</h1>
+    <p>Resumen del procesamiento del video subido.</p>
+</div>
+
+<!-- Summary Stats -->
+<div class="results-summary">
+    <div class="stat-card" style="animation-delay: 0.05s;">
+        <div class="stat-number">{{ total_detections }}</div>
+        <div class="stat-label">Rostros Detectados</div>
+    </div>
+    <div class="stat-card" style="animation-delay: 0.1s;">
+        <div class="stat-number">{{ identified }}</div>
+        <div class="stat-label">Identificados</div>
+    </div>
+    <div class="stat-card" style="animation-delay: 0.15s;">
+        <div class="stat-number">{{ unknown }}</div>
+        <div class="stat-label">Desconocidos</div>
+    </div>
+</div>
+
+{% if detections|length > 0 %}
+<h2 class="section-title">🖼️ Detecciones de Este Análisis</h2>
+<div class="detections-grid">
+    {% for det in detections %}
+    <div class="detection-card" style="animation-delay: {{ loop.index0 * 0.03 }}s;">
+        <img src="/{{ det['ruta_imagen_captura'] }}" alt="Detección facial" loading="lazy">
+        <div class="detection-card-body">
+            <h4>
+                {% if det['nombre'] %}
+                    <span class="badge badge-success">✓</span> {{ det['nombre'] }}
+                {% else %}
+                    <span class="badge badge-warning">?</span> Desconocido
+                {% endif %}
+            </h4>
+            <div class="detection-time">{{ det['fecha_hora'] }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="mt-xl" style="text-align: center;">
+    <a href="/upload" class="btn btn-outline" style="margin-right: 12px;">🎬 Analizar otro video</a>
+    <a href="/detections" class="btn btn-primary">📊 Ver todo el historial</a>
+</div>
+{% endblock %}

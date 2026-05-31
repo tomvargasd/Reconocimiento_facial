@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}FaceID — Detecciones{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+    <div>
+        <h1>Historial de Detecciones</h1>
+        <p>Todas las detecciones faciales registradas por el sistema.</p>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="card mb-xl" style="animation: fadeInUp 0.4s ease-out;">
+    <form method="GET" action="/detections" class="form-inline">
+        <div class="form-group">
+            <label class="form-label" for="persona_filter">Filtrar por persona</label>
+            <select class="form-control" id="persona_filter" name="persona_id">
+                <option value="">— Todas las personas —</option>
+                <option value="unknown" {% if filter_persona == 'unknown' %}selected{% endif %}>Desconocidos</option>
+                {% for p in personas %}
+                <option value="{{ p['id'] }}" {% if filter_persona == p['id']|string %}selected{% endif %}>{{ p['nombre'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">🔍 Filtrar</button>
+    </form>
+</div>
+
+{% if detections|length > 0 %}
+<!-- Table View -->
+<div class="table-container" style="animation: fadeInUp 0.5s ease-out 0.1s backwards;">
+    <table>
+        <thead>
+            <tr>
+                <th>Imagen</th>
+                <th>Persona</th>
+                <th>Estado</th>
+                <th>Fecha y Hora</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for det in detections %}
+            <tr>
+                <td>
+                    <img src="/{{ det['ruta_imagen_captura'] }}" alt="Detección" class="detection-thumb" loading="lazy">
+                </td>
+                <td>
+                    <strong>{{ det['nombre'] if det['nombre'] else 'Desconocido' }}</strong>
+                </td>
+                <td>
+                    {% if det['nombre'] %}
+                        <span class="badge badge-success">✓ Identificado</span>
+                    {% else %}
+                        <span class="badge badge-warning">? Desconocido</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted">{{ det['fecha_hora'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📊</div>
+    <p>No hay detecciones registradas aún. Analiza un video o usa la cámara para comenzar.</p>
+    <a href="/upload" class="btn btn-primary">🎬 Ir al análisis</a>
+</div>
+{% endif %}
+{% endblock %}

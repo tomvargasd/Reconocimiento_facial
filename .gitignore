@@ -1,1 +1,5 @@
 venv/
+*.jpg
+*.pyc
+*.mp4
+*.avif

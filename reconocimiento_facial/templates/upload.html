@@ -1,11 +1,72 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Subir Video</title>
-  </head>
-  <body>
-    <h1>Subir Video o Usar Cámara</h1>
-    <p>Próximamente: formulario para subir videos y opción de cámara en tiempo real.</p>
-  </body>
-</html>
+{% extends "base.html" %}
+{% block title %}FaceID — Análisis de Video{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Análisis de Video</h1>
+    <p>Sube un video para detectar e identificar rostros, o usa tu cámara web para el reconocimiento en tiempo real.</p>
+</div>
+
+<!-- Upload Video Section -->
+<div class="card mb-xl" style="animation: fadeInUp 0.5s ease-out;">
+    <h3 class="section-title">🎬 Subir Video para Analizar</h3>
+    <form action="/analyze_video" method="POST" enctype="multipart/form-data" id="videoForm">
+        <div class="file-upload" id="dropZone">
+            <input type="file" name="video" accept="video/*" required id="videoInput">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text" id="uploadText">Arrastra tu video aquí o haz clic para seleccionar</div>
+            <div class="upload-hint">Formatos soportados: MP4, AVI, MOV, MKV</div>
+        </div>
+        <div class="mt-lg" style="text-align: center;">
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">🚀 Procesar Video</button>
+        </div>
+    </form>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- Webcam Section -->
+<div id="webcam" style="animation: fadeInUp 0.6s ease-out 0.1s backwards;">
+    <h3 class="section-title">📷 Detección en Tiempo Real (Webcam)</h3>
+    <p class="text-muted mb-lg">Asegúrate de que tu cámara web está conectada y permitida por el navegador.</p>
+    <div class="video-container">
+        <div class="video-label">
+            <span class="live-dot"></span>
+            EN VIVO
+        </div>
+        <img src="{{ url_for('video_feed') }}" alt="Feed de cámara web en tiempo real" id="webcamFeed">
+    </div>
+</div>
+
+<script>
+    // File input label update
+    const videoInput = document.getElementById('videoInput');
+    const uploadText = document.getElementById('uploadText');
+
+    videoInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            uploadText.textContent = '📎 ' + this.files[0].name;
+            uploadText.style.color = '#a78bfa';
+        }
+    });
+
+    // Drag and drop visual effects
+    const dropZone = document.getElementById('dropZone');
+
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#7c3aed';
+        this.style.background = 'rgba(124, 58, 237, 0.08)';
+    });
+
+    dropZone.addEventListener('dragleave', function() {
+        this.style.borderColor = '';
+        this.style.background = '';
+    });
+
+    dropZone.addEventListener('drop', function() {
+        this.style.borderColor = '';
+        this.style.background = '';
+    });
+</script>
+{% endblock %}
