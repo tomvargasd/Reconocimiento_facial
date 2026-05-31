@@ -6,6 +6,17 @@
   </head>
   <body>
     <h1>Subir Video o Usar Cámara</h1>
-    <p>Próximamente: formulario para subir videos y opción de cámara en tiempo real.</p>
+    
+    <h2>Subir Video para Analizar</h2>
+    <form action="/analyze_video" method="POST" enctype="multipart/form-data">
+        <input type="file" name="video" accept="video/*" required>
+        <button type="submit">Procesar Video</button>
+    </form>
+    
+    <h2>Detección en Tiempo Real (Webcam)</h2>
+    <p>Asegúrate de que tu cámara web está conectada y permitida por el navegador.</p>
+    <img src="{{ url_for('video_feed') }}" width="640" height="480" style="border: 1px solid black;">
+    
+    <p><br><a href="/">Volver al inicio</a></p>
   </body>
 </html>

@@ -6,6 +6,28 @@
   </head>
   <body>
     <h1>Gestión de Perfiles</h1>
-    <p>Próximamente: formulario para añadir personas y subir imágenes de perfil.</p>
+    
+    <h2>Añadir Persona</h2>
+    <form action="/profiles" method="POST">
+        <input type="text" name="nombre" placeholder="Nombre de la persona" required>
+        <button type="submit">Añadir</button>
+    </form>
+    
+    <h2>Personas Registradas</h2>
+    <ul>
+        {% for persona in personas %}
+            <li>
+                <strong>{{ persona['nombre'] }}</strong>
+                <form action="/upload_profile_image/{{ persona['id'] }}" method="POST" enctype="multipart/form-data" style="display:inline;">
+                    <input type="file" name="image" accept="image/*" required>
+                    <button type="submit">Subir Imagen</button>
+                </form>
+            </li>
+        {% else %}
+            <li>No hay personas registradas.</li>
+        {% endfor %}
+    </ul>
+    
+    <p><a href="/">Volver al inicio</a></p>
   </body>
 </html>
