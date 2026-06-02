@@ -10,7 +10,7 @@
 <!-- Upload Video Section -->
 <div class="card mb-xl" style="animation: fadeInUp 0.5s ease-out;">
     <h3 class="section-title">🎬 Subir Video para Analizar</h3>
-    <form action="/analyze_video" method="POST" enctype="multipart/form-data" id="videoForm">
+    <form id="videoForm">
         <div class="file-upload" id="dropZone">
             <input type="file" name="video" accept="video/*" required id="videoInput">
             <div class="upload-icon">📁</div>
@@ -18,9 +18,20 @@
             <div class="upload-hint">Formatos soportados: MP4, AVI, MOV, MKV</div>
         </div>
         <div class="mt-lg" style="text-align: center;">
-            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">🚀 Procesar Video</button>
+            <button type="button" class="btn btn-primary btn-lg" id="submitBtn">🚀 Procesar Video</button>
         </div>
     </form>
+    
+    <!-- Progress Area -->
+    <div id="progressArea" style="display: none; margin-top: var(--space-lg);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span id="progressStatus" style="font-weight: 600; color: var(--accent-primary-light);">Procesando video...</span>
+            <span id="progressPercent" style="font-weight: 600;">0%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+    </div>
 </div>
 
 <div class="section-divider"></div>
@@ -67,6 +78,75 @@
     dropZone.addEventListener('drop', function() {
         this.style.borderColor = '';
         this.style.background = '';
+    });
+
+    // AJAX + SSE Progress bar logic
+    const submitBtn = document.getElementById('submitBtn');
+    const progressArea = document.getElementById('progressArea');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressStatus = document.getElementById('progressStatus');
+
+    submitBtn.addEventListener('click', async () => {
+        if (!videoInput.files.length) {
+            alert('Por favor selecciona un video primero.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('video', videoInput.files[0]);
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Subiendo...';
+        progressArea.style.display = 'block';
+
+        try {
+            const res = await fetch('/start_video_analysis', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if (data.error) {
+                alert(data.error);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Procesar Video';
+                progressArea.style.display = 'none';
+                return;
+            }
+
+            // Iniciar SSE listening
+            submitBtn.innerHTML = 'Procesando...';
+            const jobId = data.job_id;
+            const evtSource = new EventSource(`/video_progress/${jobId}`);
+            
+            evtSource.onmessage = function(event) {
+                const update = JSON.parse(event.data);
+                if (update.status === 'processing') {
+                    progressBar.style.width = update.progress + '%';
+                    progressPercent.textContent = update.progress + '%';
+                } else if (update.status === 'done') {
+                    progressBar.style.width = '100%';
+                    progressPercent.textContent = '100%';
+                    progressStatus.textContent = '¡Completado! Redirigiendo...';
+                    evtSource.close();
+                    setTimeout(() => {
+                        window.location.href = `/results/${jobId}`;
+                    }, 500);
+                } else if (update.status === 'error') {
+                    progressStatus.textContent = 'Error: ' + update.error_msg;
+                    progressStatus.style.color = 'var(--accent-danger)';
+                    evtSource.close();
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '🚀 Reintentar';
+                }
+            };
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '🚀 Procesar Video';
+        }
     });
 </script>
 {% endblock %}

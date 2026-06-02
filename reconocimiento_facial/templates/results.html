@@ -27,17 +27,21 @@
 <h2 class="section-title">🖼️ Detecciones de Este Análisis</h2>
 <div class="detections-grid">
     {% for det in detections %}
-    <div class="detection-card" style="animation-delay: {{ loop.index0 * 0.03 }}s;">
+    <div class="detection-card" style="animation-delay: {{ loop.index0 * 0.03 }}s;" id="det-card-{{ det['id'] }}">
         <img src="/{{ det['ruta_imagen_captura'] }}" alt="Detección facial" loading="lazy">
         <div class="detection-card-body">
-            <h4>
+            <h4 id="det-name-{{ det['id'] }}">
                 {% if det['nombre'] %}
-                    <span class="badge badge-success">✓</span> {{ det['nombre'] }}
+                    <span class="badge badge-success">✓</span> <span class="name-text">{{ det['nombre'] }}</span>
                 {% else %}
-                    <span class="badge badge-warning">?</span> Desconocido
+                    <span class="badge badge-warning">?</span> <span class="name-text">Desconocido</span>
                 {% endif %}
             </h4>
             <div class="detection-time">{{ det['fecha_hora'] }}</div>
+            <div class="mt-sm" style="margin-top: 10px;">
+                <button id="btn-unlink-{{ det['id'] }}" class="btn btn-outline btn-sm" onclick="unlinkDetection({{ det['id'] }})" style="width:100%; padding: 6px; {% if not det['nombre'] %}display:none;{% endif %}">❌ Desvincular</button>
+                <button id="btn-assign-{{ det['id'] }}" class="btn btn-primary btn-sm" onclick="openAssignModal({{ det['id'] }})" style="width:100%; padding: 6px; {% if det['nombre'] %}display:none;{% endif %}">👤 Asignar a Perfil</button>
+            </div>
         </div>
     </div>
     {% endfor %}
@@ -48,4 +52,89 @@
     <a href="/upload" class="btn btn-outline" style="margin-right: 12px;">🎬 Analizar otro video</a>
     <a href="/detections" class="btn btn-primary">📊 Ver todo el historial</a>
 </div>
+
+<!-- Assign Modal -->
+<div class="modal-overlay" id="assignModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Asignar Detección a Perfil</h3>
+            <button class="modal-close" onclick="closeAssignModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 12px; color: var(--text-secondary);">Selecciona la persona a la que pertenece este rostro:</p>
+            <input type="hidden" id="currentAssignDetId">
+            <select class="form-control" id="assignPersonaSelect">
+                <option value="">— Seleccionar Persona —</option>
+                {% for p in personas %}
+                <option value="{{ p['id'] }}">{{ p['nombre'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeAssignModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="submitAssign()">Guardar Asignación</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // F4 & F5 Scripts
+    function unlinkDetection(detId) {
+        if (!confirm('¿Estás seguro de desvincular este rostro del perfil?')) return;
+        
+        fetch(`/unlink_detection/${detId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.ok) {
+                document.getElementById(`det-name-${detId}`).innerHTML = '<span class="badge badge-warning">?</span> <span class="name-text">Desconocido</span>';
+                document.getElementById(`btn-unlink-${detId}`).style.display = 'none';
+                document.getElementById(`btn-assign-${detId}`).style.display = 'block';
+            } else {
+                alert('Error al desvincular');
+            }
+        });
+    }
+
+    function openAssignModal(detId) {
+        document.getElementById('currentAssignDetId').value = detId;
+        document.getElementById('assignPersonaSelect').value = '';
+        document.getElementById('assignModal').classList.add('active');
+    }
+
+    function closeAssignModal() {
+        document.getElementById('assignModal').classList.remove('active');
+    }
+
+    function submitAssign() {
+        const detId = document.getElementById('currentAssignDetId').value;
+        const select = document.getElementById('assignPersonaSelect');
+        const personaId = select.value;
+        const personaName = select.options[select.selectedIndex].text;
+        
+        if(!personaId) {
+            alert('Por favor selecciona una persona.');
+            return;
+        }
+
+        fetch(`/assign_detection/${detId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({persona_id: personaId})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.ok) {
+                document.getElementById(`det-name-${detId}`).innerHTML = `<span class="badge badge-success">✓</span> <span class="name-text">${personaName}</span>`;
+                document.getElementById(`btn-unlink-${detId}`).style.display = 'block';
+                document.getElementById(`btn-assign-${detId}`).style.display = 'none';
+                closeAssignModal();
+            } else {
+                alert('Error al asignar');
+            }
+        });
+    }
+</script>
 {% endblock %}

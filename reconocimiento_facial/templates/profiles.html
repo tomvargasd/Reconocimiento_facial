@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-header">
     <h1>Gestión de Perfiles</h1>
-    <p>Registra personas y sube imágenes.</p>
+    <p>Registra personas y sube imágenes de referencia.</p>
 </div>
 
 <!-- Add Person Form -->
@@ -34,20 +34,37 @@
             </div>
         </div>
 
-        <div class="profile-card-actions">
-            <form action="/upload_profile_image/{{ persona['id'] }}" method="POST" enctype="multipart/form-data">
-                <label class="btn btn-outline btn-sm" style="cursor: pointer;">
-                    📸 Subir Imagen
-                    <input type="file" name="image" accept="image/*" required onchange="this.form.submit();" style="display:none;">
-                </label>
+        <div class="profile-card-actions" style="display: flex; flex-direction: column; gap: 10px; align-items: stretch;">
+            <form action="/upload_profile_image/{{ persona['id'] }}" method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm_{{ persona['id'] }}">
+                <div style="display: flex; gap: 8px;">
+                    <label class="btn btn-outline btn-sm" style="cursor: pointer; flex-grow: 1; text-align: center;">
+                        📸 Seleccionar
+                        <input type="file" name="image" accept="image/*" multiple required onchange="updateFileCount(this, 'count_{{ persona['id'] }}');" style="display:none;">
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-sm">Subir</button>
+                </div>
+                <div id="count_{{ persona['id'] }}" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;"></div>
             </form>
             <form action="/delete_persona/{{ persona['id'] }}" method="POST" onsubmit="return confirm('¿Eliminar a {{ persona['nombre'] }} y todas sus imágenes?');">
-                <button type="submit" class="btn btn-danger btn-sm">🗑️ Eliminar</button>
+                <button type="submit" class="btn btn-danger btn-sm" style="width: 100%;">🗑️ Eliminar Perfil</button>
             </form>
         </div>
     </div>
     {% endfor %}
 </div>
+
+<script>
+function updateFileCount(input, countId) {
+    const countSpan = document.getElementById(countId);
+    if (input.files && input.files.length > 0) {
+        countSpan.textContent = `${input.files.length} archivo(s) seleccionado(s)`;
+        countSpan.style.color = 'var(--accent-success)';
+    } else {
+        countSpan.textContent = '';
+    }
+}
+</script>
+
 {% else %}
 <div class="empty-state">
     <div class="empty-icon">👤</div>

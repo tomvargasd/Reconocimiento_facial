@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import hashlib
 from ultralytics import YOLO
 
 # Cargamos el modelo YOLO (usaremos yolov8n.pt por defecto, idealmente yolov8n-face.pt)
@@ -35,3 +36,12 @@ def compare_features(feat1, feat2):
     if norm1 == 0 or norm2 == 0:
         return 0.0
     return dot_product / (norm1 * norm2)
+
+def file_hash(filepath):
+    """Calcula el hash MD5 de un archivo para detectar duplicados exactos."""
+    h = hashlib.md5()
+    with open(filepath, 'rb') as f:
+        for chunk in iter(lambda: f.read(8192), b''):
+            h.update(chunk)
+    return h.hexdigest()
+

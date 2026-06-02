@@ -36,6 +36,7 @@
                 <th>Persona</th>
                 <th>Estado</th>
                 <th>Fecha y Hora</th>
+                <th>Acciones</th>
             </tr>
         </thead>
         <tbody>
@@ -44,10 +45,10 @@
                 <td>
                     <img src="/{{ det['ruta_imagen_captura'] }}" alt="Detección" class="detection-thumb" loading="lazy">
                 </td>
-                <td>
+                <td id="td-name-{{ det['id'] }}">
                     <strong>{{ det['nombre'] if det['nombre'] else 'Desconocido' }}</strong>
                 </td>
-                <td>
+                <td id="td-status-{{ det['id'] }}">
                     {% if det['nombre'] %}
                         <span class="badge badge-success">✓ Identificado</span>
                     {% else %}
@@ -55,6 +56,10 @@
                     {% endif %}
                 </td>
                 <td class="text-muted">{{ det['fecha_hora'] }}</td>
+                <td>
+                    <button id="btn-unlink-{{ det['id'] }}" class="btn btn-outline btn-sm" onclick="unlinkDetection({{ det['id'] }})" style="{% if not det['nombre'] %}display:none;{% endif %}">❌ Desvincular</button>
+                    <button id="btn-assign-{{ det['id'] }}" class="btn btn-primary btn-sm" onclick="openAssignModal({{ det['id'] }})" style="{% if det['nombre'] %}display:none;{% endif %}">👤 Asignar</button>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
@@ -67,4 +72,90 @@
     <a href="/upload" class="btn btn-primary">🎬 Ir al análisis</a>
 </div>
 {% endif %}
+
+<!-- Assign Modal -->
+<div class="modal-overlay" id="assignModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Asignar Detección a Perfil</h3>
+            <button class="modal-close" onclick="closeAssignModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <p style="margin-bottom: 12px; color: var(--text-secondary);">Selecciona la persona a la que pertenece este rostro:</p>
+            <input type="hidden" id="currentAssignDetId">
+            <select class="form-control" id="assignPersonaSelect">
+                <option value="">— Seleccionar Persona —</option>
+                {% for p in personas %}
+                <option value="{{ p['id'] }}">{{ p['nombre'] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeAssignModal()">Cancelar</button>
+            <button class="btn btn-primary" onclick="submitAssign()">Guardar Asignación</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function unlinkDetection(detId) {
+        if (!confirm('¿Estás seguro de desvincular este rostro del perfil?')) return;
+        
+        fetch(`/unlink_detection/${detId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.ok) {
+                document.getElementById(`td-name-${detId}`).innerHTML = '<strong>Desconocido</strong>';
+                document.getElementById(`td-status-${detId}`).innerHTML = '<span class="badge badge-warning">? Desconocido</span>';
+                document.getElementById(`btn-unlink-${detId}`).style.display = 'none';
+                document.getElementById(`btn-assign-${detId}`).style.display = 'inline-flex';
+            } else {
+                alert('Error al desvincular');
+            }
+        });
+    }
+
+    function openAssignModal(detId) {
+        document.getElementById('currentAssignDetId').value = detId;
+        document.getElementById('assignPersonaSelect').value = '';
+        document.getElementById('assignModal').classList.add('active');
+    }
+
+    function closeAssignModal() {
+        document.getElementById('assignModal').classList.remove('active');
+    }
+
+    function submitAssign() {
+        const detId = document.getElementById('currentAssignDetId').value;
+        const select = document.getElementById('assignPersonaSelect');
+        const personaId = select.value;
+        const personaName = select.options[select.selectedIndex].text;
+        
+        if(!personaId) {
+            alert('Por favor selecciona una persona.');
+            return;
+        }
+
+        fetch(`/assign_detection/${detId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({persona_id: personaId})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.ok) {
+                document.getElementById(`td-name-${detId}`).innerHTML = `<strong>${personaName}</strong>`;
+                document.getElementById(`td-status-${detId}`).innerHTML = '<span class="badge badge-success">✓ Identificado</span>';
+                document.getElementById(`btn-unlink-${detId}`).style.display = 'inline-flex';
+                document.getElementById(`btn-assign-${detId}`).style.display = 'none';
+                closeAssignModal();
+            } else {
+                alert('Error al asignar');
+            }
+        });
+    }
+</script>
 {% endblock %}
