@@ -3,3 +3,4 @@ venv/
 *.pyc
 *.mp4
 *.avif
+*.db
