@@ -1,0 +1,7 @@
+{
+  "nombre": "Conteo de Vehículos",
+  "descripcion": "Detección y conteo de vehículos con YOLOv26 y línea de conteo configurable.",
+  "icono": "🚗",
+  "type": "tkinter",
+  "screens": ["VehicleProcessingScreen", "VehicleDashboardScreen"]
+}

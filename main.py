@@ -25,6 +25,8 @@ from Screens.login import LoginScreen
 from Screens.index import IndexScreen
 from Screens.profile import ProfileScreen
 from Screens.register import RegisterScreen
+from Screens.vehicle_processing import VehicleProcessingScreen
+from Screens.vehicle_dashboard import VehicleDashboardScreen
 
 
 # ══════════════════════════════════════════════════════════
@@ -226,7 +228,11 @@ class App(tk.Tk):
         self.frames: Dict[str, tk.Frame] = {}
 
         # Cargar pantallas
-        for ScreenClass in (LoginScreen, IndexScreen, ProfileScreen, RegisterScreen):
+        all_screens = (
+            LoginScreen, IndexScreen, ProfileScreen, RegisterScreen,
+            VehicleProcessingScreen, VehicleDashboardScreen,
+        )
+        for ScreenClass in all_screens:
             name = ScreenClass.__name__
             frame = ScreenClass(parent=self.container, app=self)
             self.frames[name] = frame

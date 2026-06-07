@@ -42,7 +42,8 @@ class ModuleCard(tk.Frame):
         self.app = app
         self.module_info = module_info
         self.module_id: str = module_info["id"]
-        self._active: bool = False
+        self._is_tkinter: bool = module_info.get("type") == "tkinter"
+        self._active: bool = self._is_tkinter
         self._build_ui()
         self._bind_events()
 
@@ -124,24 +125,45 @@ class ModuleCard(tk.Frame):
         bottom_row = tk.Frame(content, bg=THEME["bg_card"])
         bottom_row.pack(fill="x")
 
-        self.port_label = tk.Label(
-            bottom_row, text="Puerto: —",
-            font=FONTS["small"],
-            bg=THEME["bg_card"], fg=THEME["text_muted"]
-        )
-        self.port_label.pack(side="left")
+        if self._is_tkinter:
+            self.port_label = tk.Label(
+                bottom_row, text="Módulo nativo",
+                font=FONTS["small"],
+                bg=THEME["bg_card"], fg=THEME["text_success"]
+            )
+            self.port_label.pack(side="left")
 
-        self.access_btn = tk.Button(
-            bottom_row, text="▶  Acceder al módulo",
-            font=FONTS["small_bold"],
-            bg=THEME["success"], fg="#ffffff",
-            activebackground="#0d9668", activeforeground="#fff",
-            relief="flat", bd=0, cursor="hand2",
-            padx=10, pady=5,
-            state="disabled",
-            command=self._open_browser
-        )
-        self.access_btn.pack(side="right")
+            screens = self.module_info.get("screens", [])
+            first_screen = screens[0] if screens else "VehicleProcessingScreen"
+            self.access_btn = tk.Button(
+                bottom_row, text="▶  Abrir módulo",
+                font=FONTS["small_bold"],
+                bg=THEME["success"], fg="#ffffff",
+                activebackground="#0d9668", activeforeground="#fff",
+                relief="flat", bd=0, cursor="hand2",
+                padx=10, pady=5,
+                command=lambda s=first_screen: self._open_tkinter_screen(s)
+            )
+            self.access_btn.pack(side="right")
+        else:
+            self.port_label = tk.Label(
+                bottom_row, text="Puerto: —",
+                font=FONTS["small"],
+                bg=THEME["bg_card"], fg=THEME["text_muted"]
+            )
+            self.port_label.pack(side="left")
+
+            self.access_btn = tk.Button(
+                bottom_row, text="▶  Acceder al módulo",
+                font=FONTS["small_bold"],
+                bg=THEME["success"], fg="#ffffff",
+                activebackground="#0d9668", activeforeground="#fff",
+                relief="flat", bd=0, cursor="hand2",
+                padx=10, pady=5,
+                state="disabled",
+                command=self._open_browser
+            )
+            self.access_btn.pack(side="right")
 
     def _bind_events(self) -> None:
         """Vincula eventos de clic y hover a todos los sub-widgets del card."""
@@ -184,7 +206,11 @@ class ModuleCard(tk.Frame):
 
     def _on_card_click(self, event=None) -> None:
         """Lógica de clic: alterna entre iniciar y detener el servicio."""
-        if self._active:
+        if self._is_tkinter:
+            screens = self.module_info.get("screens", [])
+            target = screens[0] if screens else "VehicleProcessingScreen"
+            self._open_tkinter_screen(target)
+        elif self._active:
             self._confirm_stop()
         else:
             self._confirm_start()
@@ -228,6 +254,10 @@ class ModuleCard(tk.Frame):
         if port:
             webbrowser.open(f"http://localhost:{port}")
 
+    def _open_tkinter_screen(self, screen_name: str) -> None:
+        """Navega a una pantalla Tkinter del módulo nativo."""
+        self.app.show_frame(screen_name)
+
     # ──────────────────────────────────────────────────────────
     # Estado visual
     # ──────────────────────────────────────────────────────────
@@ -242,7 +272,15 @@ class ModuleCard(tk.Frame):
         """
         self._active = active
 
-        if active:
+        if self._is_tkinter:
+            bg = THEME["bg_card_active"]
+            self.status_bar.configure(bg=THEME["success"])
+            self.led_canvas.itemconfig(self._led, fill=THEME["success"])
+            self.status_label.configure(text="Nativo", fg=THEME["text_success"])
+            self.access_btn.configure(state="normal")
+            self.port_label.configure(text="Módulo nativo", fg=THEME["text_success"])
+            self._apply_bg(self, bg)
+        elif active:
             bg = THEME["bg_card_active"]
             self.status_bar.configure(bg=THEME["success"])
             self.led_canvas.itemconfig(self._led, fill=THEME["success"])
@@ -250,6 +288,7 @@ class ModuleCard(tk.Frame):
             self.access_btn.configure(state="normal")
             port_text = f"Puerto: {port}" if port else "Puerto: activo"
             self.port_label.configure(text=port_text, fg=THEME["text_success"])
+            self._apply_bg(self, bg)
         else:
             bg = THEME["bg_card"]
             self.status_bar.configure(bg=THEME["border"])
@@ -257,11 +296,12 @@ class ModuleCard(tk.Frame):
             self.status_label.configure(text="Inactivo", fg=THEME["text_muted"])
             self.access_btn.configure(state="disabled")
             self.port_label.configure(text="Puerto: —", fg=THEME["text_muted"])
-
-        self._apply_bg(self, bg)
+            self._apply_bg(self, bg)
 
     def refresh_status(self) -> None:
         """Sincroniza el estado visual con el estado real del ServiceManager."""
+        if self._is_tkinter:
+            return
         running = self.app.service_manager.is_running(self.module_id)
         port = self.app.service_manager.get_port(self.module_id)
         if running != self._active:
@@ -463,11 +503,12 @@ class IndexScreen(tk.Frame):
                     "puerto_default": 5000 + idx,
                 }
 
-            # Verificar que el script de entrada exista
-            ruta_dir = Path(info["ruta_directorio"])
-            script = ruta_dir / info.get("script_entry", "app.py")
-            if not script.exists():
-                continue
+            # Verificar que el script de entrada exista (excepto módulos nativos Tkinter)
+            if info.get("type") != "tkinter":
+                ruta_dir = Path(info["ruta_directorio"])
+                script = ruta_dir / info.get("script_entry", "app.py")
+                if not script.exists():
+                    continue
 
             # Completar con defaults
             info.setdefault("nombre",        module_dir.name.replace("_", " ").title())
