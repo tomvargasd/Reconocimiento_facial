@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}VehicleCounter — Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+    <div>
+        <h1>Dashboard</h1>
+        <p>Historial completo de videos procesados con desglose de entrada y salida.</p>
+    </div>
+    <a href="/processing" class="btn btn-primary">🎬 Nuevo análisis</a>
+</div>
+
+{% if videos|length > 0 %}
+<div class="table-container" style="animation: fadeInUp 0.4s ease-out;">
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Línea</th>
+                <th>Confianza</th>
+                <th>Total</th>
+                <th>⬆ Entrada</th>
+                <th>⬇ Salida</th>
+                <th>Fecha</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in videos %}
+            <tr>
+                <td><strong>{{ v['original_filename'] }}</strong></td>
+                <td>
+                    {% if v['status'] == 'done' %}
+                        <span class="badge badge-success">✅</span>
+                    {% elif v['status'] == 'processing' %}
+                        <span class="badge badge-warning">🔄</span>
+                    {% elif v['status'] == 'error' %}
+                        <span class="badge badge-danger">❌</span>
+                    {% elif v['status'] == 'cancelled' %}
+                        <span class="badge badge-warning">⏹️</span>
+                    {% else %}
+                        <span class="badge badge-warning">⏳</span>
+                    {% endif %}
+                </td>
+                <td class="text-muted">{{ v['line_orientation'][:3].capitalize() }} @ {{ (v['line_position']*100)|int }}%</td>
+                <td class="text-muted">{{ v['conf_threshold'] or 0.35 }}</td>
+                <td><strong>{{ v['total_vehicles'] }}</strong></td>
+                <td style="color:var(--accent-success); font-weight:600;">{{ v['total_entry'] or 0 }}</td>
+                <td style="color:var(--accent-danger); font-weight:600;">{{ v['total_exit'] or 0 }}</td>
+                <td class="text-muted">{{ v['processed_at'][:19] if v['processed_at'] else '-' }}</td>
+                <td>
+                    <div style="display:flex; gap:6px;">
+                        <a href="/results/{{ v['id'] }}" class="btn btn-primary btn-sm">Ver</a>
+                        <form action="/delete_video/{{ v['id'] }}" method="POST" onsubmit="return confirm('¿Eliminar este video?');" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-icon">📊</div>
+    <p>No hay videos procesados aún.</p>
+    <a href="/processing" class="btn btn-primary">🎬 Ir a procesar</a>
+</div>
+{% endif %}
+{% endblock %}

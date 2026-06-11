@@ -11,12 +11,13 @@ import face_utils
 import cv2
 import numpy as np
 from werkzeug.utils import secure_filename
-
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 app.secret_key = 'faceid_secret_key_2026'
-app.config['UPLOAD_FOLDER'] = 'static/profiles_data'
-app.config['VIDEO_UPLOAD_FOLDER'] = 'static/uploads'
-app.config['DETECTIONS_FOLDER'] = 'static/detections_data'
+app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR,'static/profiles_data')
+app.config['VIDEO_UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'static/uploads')
+app.config['DETECTIONS_FOLDER'] = os.path.join(BASE_DIR,'static/detections_data')
 
 # Diccionario en memoria para rastrear tareas en segundo plano
 job_store = {}

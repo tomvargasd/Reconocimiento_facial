@@ -14,8 +14,7 @@ from Modulos.conteo_vehiculos import database as db
 COCO_VEHICLE_IDS = [1, 2, 3, 5, 7]
 
 # inicializo el modelo directo en una carptema models
-MODEL_PATH = "models/yolo11s.pt"
-
+MODEL_PATH = "../../models/yolo11s.pt"
 
 def build_region_points(width, height, orientation, position):
     if orientation == 'horizontal':
@@ -35,6 +34,7 @@ def process_video(
     counts_callback=None,
     cancel_event=None,
     video_id=None,
+    conf_threshold=0.35,
 ):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -56,19 +56,17 @@ def process_video(
         model=MODEL_PATH,
         classes=COCO_VEHICLE_IDS,
         line_width=2,
-        conf=0.10
+        conf=conf_threshold,
     )
 
     frame_count = 0
+    skip_factor = max(1, int(fps / 20))
 
     while cap.isOpened():
-
-        # limite de 10fps
-        if frame_count % int(fps / 20) != 0:
+        if frame_count % skip_factor != 0:
             cap.grab()
             frame_count += 1
             continue
-
 
         if cancel_event and cancel_event.is_set():
             break
@@ -89,8 +87,14 @@ def process_video(
                 in_val = dir_counts.get('IN', 0)
                 out_val = dir_counts.get('OUT', 0)
                 named_counts[cls_name] = in_val + out_val
-            total = sum(named_counts.values())
+                named_counts[f'{cls_name}_entry'] = in_val
+                named_counts[f'{cls_name}_exit'] = out_val
+            total = sum(named_counts.get(t, 0) for t in ['car','motorcycle','bus','truck','bicycle'])
+            total_entry = sum(named_counts.get(f'{t}_entry', 0) for t in ['car','motorcycle','bus','truck','bicycle'])
+            total_exit = sum(named_counts.get(f'{t}_exit', 0) for t in ['car','motorcycle','bus','truck','bicycle'])
             named_counts['total'] = total
+            named_counts['total_entry'] = total_entry
+            named_counts['total_exit'] = total_exit
             counts_callback(named_counts)
 
         frame_count += 1
@@ -105,29 +109,40 @@ def process_video(
     duration = total_frames / fps if fps > 0 else 0
 
     final_counts = {}
+    final_entry = {}
+    final_exit = {}
     for cls_name, dir_counts in counter.classwise_count.items():
         in_val = dir_counts.get('IN', 0)
         out_val = dir_counts.get('OUT', 0)
         final_counts[cls_name] = in_val + out_val
+        final_entry[cls_name] = in_val
+        final_exit[cls_name] = out_val
 
     if video_id is not None:
         total_vehicles = sum(final_counts.values())
+        total_entry_all = sum(final_entry.values())
+        total_exit_all = sum(final_exit.values())
         db.update_video_status(
             video_id,
             'done' if not (cancel_event and cancel_event.is_set()) else 'cancelled',
             total_vehicles=total_vehicles,
             duration_seconds=duration,
+            total_entry=total_entry_all,
+            total_exit=total_exit_all,
         )
         for vtype, vcount in final_counts.items():
-            db.upsert_vehicle_count(video_id, vtype, vcount)
+            db.upsert_vehicle_count(video_id, vtype, vcount,
+                                    entry_count=final_entry.get(vtype, 0),
+                                    exit_count=final_exit.get(vtype, 0))
 
-    return final_counts, duration
+    return final_counts, duration, final_entry, final_exit
 
 
 def process_video_standalone(
     video_path,
     orientation='horizontal',
     position=0.5,
+    conf_threshold=0.35,
 ):
     db.init_db()
 
@@ -139,16 +154,18 @@ def process_video_standalone(
         original_filename=original_name,
         orientation=orientation,
         position=position,
+        conf_threshold=conf_threshold,
     )
 
     db.update_video_status(video_id, 'processing')
 
     try:
-        counts, duration = process_video(
+        counts, duration, entry_counts, exit_counts = process_video(
             video_path=video_path,
             orientation=orientation,
             position=position,
             video_id=video_id,
+            conf_threshold=conf_threshold,
         )
         print(f"Procesamiento completado: {counts}")
         return video_id, counts
@@ -158,13 +175,18 @@ def process_video_standalone(
 
 
 if __name__ == '__main__':
-    import sys
-    if len(sys.argv) < 2:
-        print("Uso: python vehicle_counter.py <video_path> [horizontal|vertical] [posicion]")
-        sys.exit(1)
+    import argparse
+    parser = argparse.ArgumentParser(description="Procesar video para conteo de vehículos")
+    parser.add_argument('video_path', help="Ruta al archivo de video")
+    parser.add_argument('--orientation', choices=['horizontal', 'vertical'], default='horizontal')
+    parser.add_argument('--position', type=float, default=0.5)
+    parser.add_argument('--conf', type=float, default=0.35)
+    args = parser.parse_args()
 
-    video_path = sys.argv[1]
-    orientation = sys.argv[2] if len(sys.argv) > 2 else 'horizontal'
-    position = float(sys.argv[3]) if len(sys.argv) > 3 else 0.5
-
-    process_video_standalone(video_path, orientation, position)
+    db.init_db()
+    process_video_standalone(
+        args.video_path,
+        args.orientation,
+        args.position,
+        conf_threshold=args.conf,
+    )

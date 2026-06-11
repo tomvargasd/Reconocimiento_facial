@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}VehicleCounter — Procesando{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Procesando Video</h1>
+    <p>El video se está analizando. Los contadores se actualizan en tiempo real.</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="card" style="animation: fadeInUp 0.4s ease-out;">
+        <h3>Contadores en Vivo</h3>
+        <div style="margin-top: 16px;">
+            {% for vtype in ['car', 'motorcycle', 'bus', 'truck', 'bicycle'] %}
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-color);">
+                <span>{{ {'car':'🚗 Autos','motorcycle':'🏍️ Motos','bus':'🚌 Buses','truck':'🚚 Camiones','bicycle':'🚲 Bicicletas'}.get(vtype, vtype) }}</span>
+                <span id="count_{{ vtype }}" style="font-weight:700; color:var(--accent-primary); font-size:1.1rem;">0</span>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="margin-top:16px; padding-top:12px; border-top:2px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between;">
+                <span style="font-weight:600;">Total Vehículos</span>
+                <span id="count_total" style="font-weight:800; color:var(--accent-success); font-size:1.5rem;">0</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px solid var(--border-color);">
+                <span style="color:var(--accent-success);">⬆ Entrada (Carril 1)</span>
+                <span id="count_entry" style="font-weight:700; color:var(--accent-success);">0</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                <span style="color:var(--accent-danger);">⬇ Salida (Carril 2)</span>
+                <span id="count_exit" style="font-weight:700; color:var(--accent-danger);">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="animation: fadeInUp 0.4s ease-out 0.1s backwards;">
+        <h3>Progreso</h3>
+        <div style="text-align:center; padding:20px 0;">
+            <div id="progressIcon" style="font-size:4rem; margin-bottom:16px;">🔄</div>
+            <div class="progress-bar-container" style="margin-bottom:12px;">
+                <div class="progress-bar-fill" id="progressFill" style="width:0%;"></div>
+            </div>
+            <div id="progressText" style="font-size:1.2rem; font-weight:700; color:var(--accent-primary);">0%</div>
+            <div id="statusMessage" style="margin-top:12px; color:var(--text-secondary);">Iniciando procesamiento...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const jobId = '{{ job_id }}';
+    let resultsVideoId = null;
+    const evtSource = new EventSource('/job_progress/' + jobId);
+
+    evtSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+
+        if (data.status === 'error') {
+            document.getElementById('statusMessage').innerHTML = '❌ Error: ' + (data.error_msg || 'Desconocido');
+            document.getElementById('progressIcon').textContent = '❌';
+            evtSource.close();
+            return;
+        }
+
+        if (data.status === 'results' && data.results) {
+            resultsVideoId = data.results.id;
+        }
+
+        if (data.status === 'done' || data.status === 'results') {
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressText').textContent = '100%';
+            document.getElementById('progressIcon').textContent = '✅';
+            document.getElementById('statusMessage').innerHTML = '✅ Procesamiento completado';
+            evtSource.close();
+            if (resultsVideoId) setTimeout(function() { window.location.href = '/results/' + resultsVideoId; }, 1500);
+            return;
+        }
+
+        if (data.progress !== undefined) {
+            document.getElementById('progressFill').style.width = data.progress + '%';
+            document.getElementById('progressText').textContent = data.progress + '%';
+        }
+
+        if (data.counts) {
+            var c = data.counts;
+            {% for vtype in ['car', 'motorcycle', 'bus', 'truck', 'bicycle'] %}
+            if (c['{{ vtype }}'] !== undefined) document.getElementById('count_{{ vtype }}').textContent = c['{{ vtype }}'];
+            {% endfor %}
+            if (c.total !== undefined) document.getElementById('count_total').textContent = c.total;
+            if (c.total_entry !== undefined) document.getElementById('count_entry').textContent = c.total_entry;
+            if (c.total_exit !== undefined) document.getElementById('count_exit').textContent = c.total_exit;
+        }
+
+        document.getElementById('statusMessage').innerHTML = '🔄 Procesando... ' + (data.progress || 0) + '%';
+    };
+
+    evtSource.onerror = function() { evtSource.close(); };
+</script>
+{% endblock %}

@@ -1,13 +1,13 @@
+import os
 import cv2
 import numpy as np
 import hashlib
 from ultralytics import YOLO
 
-# Cargamos el modelo YOLO (usaremos yolov8n.pt por defecto, idealmente yolov8n-face.pt)
-try:
-    model = YOLO('models/yolov8n-face.pt')
-except Exception:
-    model = YOLO('yolov8n.pt')
+ruta_defecto = "../../models/yolov8n.pt"
+
+model = YOLO(ruta_defecto)
+print("Modelo cargado correctamente")    
 
 def detect_faces(image):
     results = model(image)

@@ -5,3 +5,5 @@ Pillow>=10.0
 torch>=2.1
 shapely>=2.0.0
 lap>=0.5.12
+flask>=3.0
+werkzeug>=3.0
