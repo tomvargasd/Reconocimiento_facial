@@ -1,0 +1,7 @@
+{
+  "nombre": "Reconocimiento Facial",
+  "descripcion": "Análisis y detección de rostros en tiempo real, gestión de perfiles y reportes de detección.",
+  "icono": "👁",
+  "script_entry": "app.py",
+  "puerto_default": 5000
+}

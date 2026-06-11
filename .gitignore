@@ -3,3 +3,8 @@ venv/
 *.pyc
 *.mp4
 *.avif
+*.db
+__pycache__/
+
+# Carpetas de medios locales
+Modulos/conteo_vehiculos/uploaded_videos/

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}VehicleCounter — Resultados{% endblock %}
+
+{% block content %}
+<div class="page-header flex-between">
+    <div>
+        <h1>Resultados del Análisis</h1>
+        <p>{{ video['original_filename'] }}</p>
+    </div>
+    <a href="/dashboard" class="btn btn-outline">📊 Dashboard</a>
+</div>
+
+<div class="card mb-xl" style="animation: fadeInUp 0.4s ease-out;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:16px;">
+        <div class="stat-card">
+            <div class="stat-number">{{ video['total_vehicles'] }}</div>
+            <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="background:linear-gradient(135deg,#10b981,#059669); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">{{ video['total_entry'] or 0 }}</div>
+            <div class="stat-label">⬆ Entradas (Carril 1)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" style="background:linear-gradient(135deg,#ef4444,#dc2626); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">{{ video['total_exit'] or 0 }}</div>
+            <div class="stat-label">⬇ Salidas (Carril 2)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ video['counts']|length }}</div>
+            <div class="stat-label">Tipos</div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="animation: fadeInUp 0.5s ease-out 0.1s backwards;">
+    <h3>Detalle del Video</h3>
+    <table>
+        <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+        <tbody>
+            <tr><td>Nombre</td><td><strong>{{ video['original_filename'] }}</strong></td></tr>
+            <tr><td>Procesado</td><td>{{ video['processed_at'][:19] if video['processed_at'] else '-' }}</td></tr>
+            <tr><td>Línea</td><td>{{ video['line_orientation'].capitalize() }} @ {{ (video['line_position']*100)|int }}%</td></tr>
+            <tr><td>Umbral de confianza</td><td>{{ video['conf_threshold'] or 0.35 }}</td></tr>
+            {% if video['duration_seconds'] %}
+            <tr><td>Duración</td>
+                <td>
+                    {% set mins = (video['duration_seconds']/60)|int %}
+                    {% set secs = (video['duration_seconds']%60)|int %}
+                    {% set hours = (mins/60)|int %}
+                    {% set mins = mins % 60 %}
+                    {% if hours > 0 %}{{ hours }}h {% endif %}{{ mins }}m {{ secs }}s
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{% if video['counts'] %}
+<div class="card mt-xl" style="animation: fadeInUp 0.5s ease-out 0.2s backwards;">
+    <h3>Desglose por Tipo</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:12px;">
+        {% for c in video['counts'] %}
+        <div style="background:var(--bg-card); border:var(--glass-border); border-radius:var(--border-radius-md); padding:16px; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:8px;">{{ VEHICLE_ICONS.get(c['vehicle_type'], '🚗') }}</div>
+            <div style="font-weight:600; color:var(--text-secondary);">{{ VEHICLE_LABELS.get(c['vehicle_type'], c['vehicle_type']) }}</div>
+            <div style="font-size:2rem; font-weight:800; color:var(--accent-primary);">{{ c['count'] }}</div>
+            <div style="display:flex; justify-content:space-around; margin-top:8px; font-size:0.8rem;">
+                <span style="color:var(--accent-success);">⬆ {{ c['entry_count'] or 0 }}</span>
+                <span style="color:var(--accent-danger);">⬇ {{ c['exit_count'] or 0 }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div style="text-align:center; margin-top:24px;">
+    <a href="/processing" class="btn btn-primary btn-lg">🎬 Procesar otro video</a>
+</div>
+{% endblock %}

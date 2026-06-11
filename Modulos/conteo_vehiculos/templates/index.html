@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}VehicleCounter — Inicio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Panel de Control</h1>
+    <p>Sistema de detección y conteo de vehículos con IA. Configura la línea de conteo, ajusta el umbral de confianza y analiza videos con dos carriles (entrada/salida).</p>
+</div>
+
+<div class="dashboard-grid">
+    <a href="/processing" class="card" style="animation: fadeInUp 0.5s ease-out backwards; animation-delay: 0.05s;">
+        <span class="card-icon">🎬</span>
+        <h3>Procesar Video</h3>
+        <p>Sube un video, configura línea de conteo, orientación y umbral de confianza con previsualización en vivo.</p>
+        <span class="card-stat">Nuevo análisis</span>
+    </a>
+
+    <a href="/dashboard" class="card" style="animation: fadeInUp 0.5s ease-out backwards; animation-delay: 0.1s;">
+        <span class="card-icon">📊</span>
+        <h3>Dashboard</h3>
+        <p>Explora el historial de videos procesados con contadores de entrada y salida por carril.</p>
+        <span class="card-stat">{{ total_videos }} video{{ 's' if total_videos != 1 else '' }}</span>
+    </a>
+</div>
+
+{% if videos %}
+<div class="section-divider"></div>
+<h2 class="section-title">📹 Últimos videos procesados</h2>
+
+<div class="table-container" style="animation: fadeInUp 0.5s ease-out;">
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th>⬆ Entrada</th>
+                <th>⬇ Salida</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for v in videos %}
+            <tr>
+                <td><strong>{{ v['original_filename'] }}</strong></td>
+                <td>
+                    {% if v['status'] == 'done' %}
+                        <span class="badge badge-success">✅ Completado</span>
+                    {% elif v['status'] == 'processing' %}
+                        <span class="badge badge-warning">🔄 Procesando</span>
+                    {% elif v['status'] == 'error' %}
+                        <span class="badge badge-danger">❌ Error</span>
+                    {% elif v['status'] == 'cancelled' %}
+                        <span class="badge badge-warning">⏹️ Cancelado</span>
+                    {% else %}
+                        <span class="badge badge-warning">⏳ Pendiente</span>
+                    {% endif %}
+                </td>
+                <td><strong>{{ v['total_vehicles'] }}</strong></td>
+                <td>{{ v['total_entry'] or 0 }}</td>
+                <td>{{ v['total_exit'] or 0 }}</td>
+                <td class="text-muted">{{ v['processed_at'][:19] if v['processed_at'] else '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

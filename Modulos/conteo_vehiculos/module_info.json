@@ -1,0 +1,7 @@
+{
+  "nombre": "Conteo de Vehículos",
+  "descripcion": "Detección y conteo de vehículos con YOLO, línea configurable y soporte para dos carriles (entrada/salida).",
+  "icono": "🚗",
+  "script_entry": "app.py",
+  "puerto_default": 5001
+}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}VehicleCounter — Procesar Video{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Procesar Video</h1>
+    <p>Sube un video, configura los parámetros y previsualiza la línea de conteo antes de procesar.</p>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="card" style="animation: fadeInUp 0.4s ease-out;">
+        <h3>Subir y Configurar</h3>
+        <form method="POST" action="/processing" enctype="multipart/form-data" id="processingForm">
+            <div class="form-group">
+                <label class="form-label">Video</label>
+                <div class="file-upload" id="fileUpload">
+                    <span class="upload-icon">🎬</span>
+                    <span class="upload-text">Selecciona un video</span>
+                    <span class="upload-hint">MP4, AVI, MOV, MKV, WMV</span>
+                    <input type="file" name="video" accept="video/*" id="videoInput" required>
+                </div>
+                <div id="fileInfo" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-muted); display: none;"></div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Umbral de Confianza: <span id="confValue" style="color: var(--accent-primary);">0.35</span></label>
+                <input type="range" id="confSlider" name="conf_threshold" min="0.1" max="0.9" step="0.05" value="0.35"
+                       oninput="document.getElementById('confValue').textContent = parseFloat(this.value).toFixed(2)"
+                       style="width: 100%; accent-color: var(--accent-primary);">
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Valores altos = detecciones más seguras pero menos sensibles</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Orientación</label>
+                <div style="display: flex; gap: 12px;">
+                    <label style="flex:1; display:flex; align-items:center; gap:6px; cursor:pointer; padding:10px 16px; background:var(--bg-input); border-radius:var(--border-radius-sm); border:1px solid var(--border-color); justify-content:center;">
+                        <input type="radio" name="orientation" value="horizontal" checked onchange="updatePreview()"> ➖ Horizontal
+                    </label>
+                    <label style="flex:1; display:flex; align-items:center; gap:6px; cursor:pointer; padding:10px 16px; background:var(--bg-input); border-radius:var(--border-radius-sm); border:1px solid var(--border-color); justify-content:center;">
+                        <input type="radio" name="orientation" value="vertical" onchange="updatePreview()"> ❚ Vertical
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Posición: <span id="posValue" style="color: var(--accent-primary);">50%</span></label>
+                <input type="range" id="posSlider" name="position" min="0.0" max="1.0" step="0.01" value="0.5"
+                       oninput="document.getElementById('posValue').textContent = Math.round(parseFloat(this.value)*100)+'%'; updatePreview()"
+                       style="width: 100%; accent-color: var(--accent-primary);">
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg" style="width: 100%;" id="startBtn" disabled>
+                ▶ Iniciar Procesamiento
+            </button>
+        </form>
+    </div>
+
+    <div class="card" style="animation: fadeInUp 0.4s ease-out 0.1s backwards;">
+        <h3>Previsualización</h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px;">La línea se actualiza dinámicamente al mover los controles.</p>
+        <div id="previewContainer" style="background:var(--bg-secondary); border-radius:var(--border-radius-md); border:1px solid var(--border-color); min-height:300px; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+            <div id="previewPlaceholder" style="color:var(--text-muted); text-align:center; padding:40px;">
+                <div style="font-size:3rem; margin-bottom:12px;">🎬</div>
+                <p>Selecciona un video para la previsualización</p>
+            </div>
+            <img id="previewImage" style="display:none; width:100%; height:auto; border-radius:var(--border-radius-md);" alt="Preview">
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentVideoPath = '';
+
+    document.getElementById('videoInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        document.getElementById('startBtn').disabled = false;
+        document.getElementById('fileUpload').querySelector('.upload-text').textContent = file.name;
+        document.getElementById('fileUpload').querySelector('.upload-hint').textContent = (file.size/1024/1024).toFixed(1)+' MB';
+
+        const fd = new FormData();
+        fd.append('video', file);
+        fetch('/api/session_video', { method: 'POST', body: fd })
+            .then(r => r.json()).then(d => { if(d.session_id) { currentVideoPath = d.session_id; updatePreview(); } })
+            .catch(() => {});
+    });
+
+    function updatePreview() {
+        if (!currentVideoPath) return;
+        const pos = document.getElementById('posSlider').value;
+        const orient = document.querySelector('input[name=\"orientation\"]:checked').value;
+        fetch('/api/preview_frame', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({video_path: currentVideoPath, position: parseFloat(pos), orientation: orient})
+        }).then(r => r.json()).then(d => {
+            if (d.frame) {
+                document.getElementById('previewImage').src = 'data:image/jpeg;base64,' + d.frame;
+                document.getElementById('previewImage').style.display = 'block';
+                document.getElementById('previewPlaceholder').style.display = 'none';
+            }
+        }).catch(() => {});
+    }
+</script>
+{% endblock %}
